@@ -19,6 +19,7 @@ Bot para gravar a janela do **Microsoft Teams (app desktop)** durante aulas onli
    .venv\Scripts\activate
    pip install -r requirements.txt
    ```
+   Inclui **Rich** (interface no terminal) e **Loguru** (logs e auditoria).
 
 3. **Configuração (opcional)**  
    Copie `.env.example` para `.env` e ajuste:
@@ -85,4 +86,19 @@ Ajuste `CRF` no `.env`: **18–22** = mais qualidade (arquivo maior), **28–30*
 - **Áudio:** a captura é da **janela** (gdigrab). Para áudio interno (ex.: saída do Teams), configure no `.env` o dispositivo DShow: `AUDIO_DEVICE_DSHOW=audio=...`. Liste dispositivos com: `ffmpeg -list_devices true -f dshow -i dummy`.
 - **AV1:** preset padrão 10 (mais lento, arquivos menores para aulas). Ajuste com `AV1_PRESET` (0–13) no `.env`.
 - **Segurança (GRC):** o bot avisa se a janela do Teams não está em foco (evitar gravar notificações de outras janelas). Upload via API não imprime credenciais em erros; após upload é feita verificação de integridade (SHA-256/MD5 local vs Drive).
+- **Observabilidade:** logs no terminal via **Rich** (cores, ícones); auditoria em `logs/audit_YYYY-MM-DD.log` (rotação 100 MB, retenção 30 dias). Exceções não tratadas são capturadas e logadas com traceback (`@logger.catch`).
 - **Política de uso:** use apenas para estudo pessoal e respeite os termos da FIAP e do Microsoft Teams.
+
+---
+
+## Testes
+
+O projeto tem suíte de testes com **pytest**. Para rodar:
+
+```bash
+.venv\Scripts\activate
+pip install -r requirements.txt   # inclui pytest e pytest-cov
+pytest
+```
+
+Para relatório de cobertura: `pytest --cov=. --cov-report=term-missing`

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pygetwindow as gw
+from loguru import logger
 
 import config
 
@@ -104,24 +105,22 @@ class TeamsRecorder(RecorderInterface):
 
     def start(self, sufixo: str = "") -> tuple[subprocess.Popen | None, Path | None]:
         if shutil.which("ffmpeg") is None:
-            print("Erro: FFmpeg não encontrado. Instale e adicione ao PATH.", file=sys.stderr)
+            logger.error("FFmpeg não encontrado. Instale e adicione ao PATH.")
             return None, None
 
         win = self.find_window()
         if not win:
-            print(
+            logger.error(
                 f"Nenhuma janela com '{config.TEAMS_WINDOW_TITLE}' no título encontrada. "
-                "Abra o app do Teams e deixe a janela da reunião visível.",
-                file=sys.stderr,
+                "Abra o app do Teams e deixe a janela da reunião visível."
             )
             return None, None
 
         # Leak prevention: avisar se a janela não está em foco (evitar gravar e-mail/Slack etc.)
         if not _janela_em_foco(win):
-            print(
-                "Aviso: a janela do Teams não está em foco. Coloque-a em foco ou full screen "
-                "para evitar gravar notificações de outras janelas.",
-                file=sys.stderr,
+            logger.warning(
+                "A janela do Teams não está em foco. Coloque-a em foco ou full screen "
+                "para evitar gravar notificações de outras janelas."
             )
 
         hwnd = getattr(win, "hWnd", None)
@@ -134,9 +133,9 @@ class TeamsRecorder(RecorderInterface):
 
         cmd, out_path = _build_ffmpeg_cmd(output_path, use_hwnd, hwnd, win.title)
         out_path = Path(out_path)
-        print(f"Janela: {win.title}")
-        print(f"Gravando em: {out_path}")
-        print("Para parar: feche este terminal ou pressione Ctrl+C.")
+        logger.info(f"Janela: {win.title}")
+        logger.info(f"Gravando em: {out_path}")
+        logger.info("Para parar: feche este terminal ou pressione Ctrl+C.")
 
         try:
             proc = subprocess.Popen(
@@ -148,10 +147,10 @@ class TeamsRecorder(RecorderInterface):
             )
             return proc, out_path
         except FileNotFoundError:
-            print("Erro: FFmpeg não encontrado no PATH.", file=sys.stderr)
+            logger.error("FFmpeg não encontrado no PATH.")
             return None, None
         except Exception as e:
-            print(f"Erro ao iniciar FFmpeg: {e}", file=sys.stderr)
+            logger.exception(f"Erro ao iniciar FFmpeg: {e}")
             return None, None
 
 
