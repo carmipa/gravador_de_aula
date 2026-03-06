@@ -1,0 +1,10 @@
+# Gravador de Aula - Teams FIAP
+# Python 3.10+
+
+pygetwindow>=0.0.9
+python-dotenv>=1.0.0
+
+# Opcional: upload para Google Drive
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.1.0
+google-auth-oauthlib>=1.0.0
