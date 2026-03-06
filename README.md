@@ -81,6 +81,8 @@ Ajuste `CRF` no `.env`: **18–22** = mais qualidade (arquivo maior), **28–30*
 
 ## Observações
 
-- **Áudio:** a captura é da **janela** (gdigrab). No Windows o áudio do sistema costuma ir junto; se não for o caso, você pode usar um cabo de áudio virtual (ex.: VB-Cable) e configurar o FFmpeg para capturar esse dispositivo.
-- **Segurança:** não coloque senhas no código; use apenas o `.env` (e não faça commit do `.env`).
+- **Encerramento:** ao dar **Ctrl+C**, o script envia `q` ao FFmpeg para fechar o container graciosamente (evita arquivo corrompido por cabeçalho não finalizado).
+- **Áudio:** a captura é da **janela** (gdigrab). Para áudio interno (ex.: saída do Teams), configure no `.env` o dispositivo DShow: `AUDIO_DEVICE_DSHOW=audio=...`. Liste dispositivos com: `ffmpeg -list_devices true -f dshow -i dummy`.
+- **AV1:** preset padrão 10 (mais lento, arquivos menores para aulas). Ajuste com `AV1_PRESET` (0–13) no `.env`.
+- **Segurança (GRC):** o bot avisa se a janela do Teams não está em foco (evitar gravar notificações de outras janelas). Upload via API não imprime credenciais em erros; após upload é feita verificação de integridade (SHA-256/MD5 local vs Drive).
 - **Política de uso:** use apenas para estudo pessoal e respeite os termos da FIAP e do Microsoft Teams.

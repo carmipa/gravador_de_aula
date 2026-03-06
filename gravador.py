@@ -1,16 +1,34 @@
 """
 Grava a janela do Microsoft Teams usando FFmpeg (gdigrab no Windows).
 Suporta AV1, HEVC e H.264 para arquivos pequenos com boa qualidade.
+Arquitetura: RecorderInterface -> TeamsRecorder; FileManager para hash e cópia.
 """
 import shutil
 import subprocess
 import sys
+from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pygetwindow as gw
 
 import config
+
+if TYPE_CHECKING:
+    from pygetwindow import BaseWindow
+
+
+def _janela_em_foco(win: "BaseWindow") -> bool:
+    """Verifica se a janela está em foco (evita gravar notificações de outras apps - leak prevention)."""
+    if sys.platform != "win32":
+        return True
+    try:
+        import ctypes
+        hwnd_fg = ctypes.windll.user32.GetForegroundWindow()  # type: ignore[attr-defined]
+        return getattr(win, "hWnd", None) == hwnd_fg
+    except Exception:
+        return True
 
 
 def _find_teams_window():
@@ -25,7 +43,7 @@ def _find_teams_window():
 
 
 def _build_ffmpeg_cmd(output_path: Path, use_hwnd: bool, hwnd: int, window_title: str):
-    """Monta o comando FFmpeg para captura gdigrab + codec escolhido."""
+    """Monta o comando FFmpeg para captura gdigrab + codec escolhido; opcionalmente áudio dshow."""
     base = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "warning"]
     base.extend(["-f", "gdigrab", "-framerate", str(config.FPS)])
     if use_hwnd and hwnd is not None:
@@ -33,12 +51,17 @@ def _build_ffmpeg_cmd(output_path: Path, use_hwnd: bool, hwnd: int, window_title
     else:
         base.extend(["-i", f"title={window_title}"])
 
+    has_audio = bool(getattr(config, "AUDIO_DEVICE_DSHOW", None))
+    if has_audio:
+        base.extend(["-f", "dshow", "-i", config.AUDIO_DEVICE_DSHOW])
+
     crf = config.CRF
     ext = "mkv"
 
     if config.CODEC == "av1":
-        # libsvtav1: preset 8 = bom equilíbrio velocidade/compressão
-        base.extend(["-c:v", "libsvtav1", "-preset", "8", "-crf", str(crf)])
+        # libsvtav1: preset 10 = mais lento, arquivos menores (ideal para aulas, pouco movimento)
+        preset = getattr(config, "AV1_PRESET", 10)
+        base.extend(["-c:v", "libsvtav1", "-preset", str(preset), "-crf", str(crf)])
         ext = "mkv"
     elif config.CODEC == "hevc_nvenc":
         base.extend(["-c:v", "hevc_nvenc", "-rc", "vbr", "-cq", str(crf)])
@@ -50,72 +73,112 @@ def _build_ffmpeg_cmd(output_path: Path, use_hwnd: bool, hwnd: int, window_title
         base.extend(["-c:v", "libx264", "-preset", "fast", "-crf", str(crf)])
         ext = "mp4"
 
+    if has_audio:
+        base.extend(["-c:a", "libopus", "-b:a", "32k"])
+        base.append("-shortest")
+
     out = str(output_path.with_suffix(f".{ext}"))
     base.append(out)
     return base, out
 
 
+class RecorderInterface(ABC):
+    """Interface para gravadores (ex.: Teams, futuros Genérico/Chrome)."""
+
+    @abstractmethod
+    def find_window(self):
+        """Retorna a janela a ser gravada ou None."""
+        ...
+
+    @abstractmethod
+    def start(self, sufixo: str = "") -> tuple[subprocess.Popen | None, Path | None]:
+        """Inicia a gravação. Retorna (processo, caminho_arquivo)."""
+        ...
+
+
+class TeamsRecorder(RecorderInterface):
+    """Implementa a lógica específica de buscar a janela do Teams e gravar com FFmpeg."""
+
+    def find_window(self):
+        return _find_teams_window()
+
+    def start(self, sufixo: str = "") -> tuple[subprocess.Popen | None, Path | None]:
+        if shutil.which("ffmpeg") is None:
+            print("Erro: FFmpeg não encontrado. Instale e adicione ao PATH.", file=sys.stderr)
+            return None, None
+
+        win = self.find_window()
+        if not win:
+            print(
+                f"Nenhuma janela com '{config.TEAMS_WINDOW_TITLE}' no título encontrada. "
+                "Abra o app do Teams e deixe a janela da reunião visível.",
+                file=sys.stderr,
+            )
+            return None, None
+
+        # Leak prevention: avisar se a janela não está em foco (evitar gravar e-mail/Slack etc.)
+        if not _janela_em_foco(win):
+            print(
+                "Aviso: a janela do Teams não está em foco. Coloque-a em foco ou full screen "
+                "para evitar gravar notificações de outras janelas.",
+                file=sys.stderr,
+            )
+
+        hwnd = getattr(win, "hWnd", None)
+        use_hwnd = hwnd is not None
+
+        Path(config.GRAVACOES_DIR).mkdir(parents=True, exist_ok=True)
+        data_hora = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        nome = f"aula_{data_hora}{sufixo}" if sufixo else f"aula_{data_hora}"
+        output_path = Path(config.GRAVACOES_DIR) / nome
+
+        cmd, out_path = _build_ffmpeg_cmd(output_path, use_hwnd, hwnd, win.title)
+        out_path = Path(out_path)
+        print(f"Janela: {win.title}")
+        print(f"Gravando em: {out_path}")
+        print("Para parar: feche este terminal ou pressione Ctrl+C.")
+
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+            )
+            return proc, out_path
+        except FileNotFoundError:
+            print("Erro: FFmpeg não encontrado no PATH.", file=sys.stderr)
+            return None, None
+        except Exception as e:
+            print(f"Erro ao iniciar FFmpeg: {e}", file=sys.stderr)
+            return None, None
+
+
 def gravar(sufixo: str = "") -> tuple[subprocess.Popen | None, Path | None]:
     """
-    Localiza a janela do Teams e inicia a gravação com FFmpeg.
-    Retorna (processo, caminho_do_arquivo). Encerre com Ctrl+C; depois use copiar_para_gdrive(caminho).
+    Localiza a janela do Teams e inicia a gravação com FFmpeg (via TeamsRecorder).
+    Retorna (processo, caminho_do_arquivo). Encerre com parar_gravacao(proc) ou Ctrl+C.
     """
-    if shutil.which("ffmpeg") is None:
-        print("Erro: FFmpeg não encontrado. Instale e adicione ao PATH.", file=sys.stderr)
-        return None, None
+    return TeamsRecorder().start(sufixo=sufixo)
 
-    win = _find_teams_window()
-    if not win:
-        print(
-            f"Nenhuma janela com '{config.TEAMS_WINDOW_TITLE}' no título encontrada. "
-            "Abra o app do Teams e deixe a janela da reunião visível.",
-            file=sys.stderr,
-        )
-        return None, None
 
-    # HWND para captura estável (FFmpeg 7+ suporta hwnd= no gdigrab)
-    hwnd = getattr(win, "hWnd", None)
-    use_hwnd = hwnd is not None
-
-    Path(config.GRAVACOES_DIR).mkdir(parents=True, exist_ok=True)
-    data_hora = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    nome = f"aula_{data_hora}{sufixo}" if sufixo else f"aula_{data_hora}"
-    output_path = Path(config.GRAVACOES_DIR) / nome
-
-    cmd, out_path = _build_ffmpeg_cmd(output_path, use_hwnd, hwnd, win.title)
-    out_path = Path(out_path)
-    print(f"Janela: {win.title}")
-    print(f"Gravando em: {out_path}")
-    print("Para parar: feche este terminal ou pressione Ctrl+C.")
-
+def parar_gravacao(processo: subprocess.Popen) -> None:
+    """
+    Encerra a gravação enviando 'q' ao stdin do FFmpeg para fechar o container
+    graciosamente (evita arquivo .mp4/.mkv corrompido por cabeçalho não finalizado).
+    Se o processo não responder em 5s, faz kill.
+    """
+    if processo is None or processo.poll() is not None:
+        return
     try:
-        proc = subprocess.Popen(
-            cmd,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
-        )
-        return proc, out_path
-    except FileNotFoundError:
-        print("Erro: FFmpeg não encontrado no PATH.", file=sys.stderr)
-        return None, None
-    except Exception as e:
-        print(f"Erro ao iniciar FFmpeg: {e}", file=sys.stderr)
-        return None, None
+        processo.communicate(input=b"q", timeout=5)
+    except subprocess.TimeoutExpired:
+        processo.kill()
+        processo.wait(timeout=2)
 
 
 def copiar_para_gdrive(local_path: Path) -> bool:
-    """Copia o arquivo gravado para a pasta local do Google Drive, se configurada."""
-    if not config.GDRIVE_PASTA_LOCAL or not local_path.exists():
-        return False
-    dest_dir = Path(config.GDRIVE_PASTA_LOCAL)
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / local_path.name
-    try:
-        shutil.copy2(local_path, dest)
-        print(f"Cópia para Google Drive: {dest}")
-        return True
-    except Exception as e:
-        print(f"Erro ao copiar para GDrive: {e}", file=sys.stderr)
-        return False
+    """Copia o arquivo gravado para a pasta local do Google Drive (delega ao FileManager)."""
+    from file_manager import FileManager
+    return FileManager.copy_to_gdrive_local(local_path)

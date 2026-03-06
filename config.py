@@ -33,3 +33,12 @@ FPS = max(15, min(60, FPS))
 
 # Título (parcial) da janela do Teams
 TEAMS_WINDOW_TITLE = os.getenv("TEAMS_WINDOW_TITLE", "Teams").strip()
+
+# Áudio: dispositivo DShow (Windows). Listar com: ffmpeg -list_devices true -f dshow -i dummy
+# Ex.: "audio=Linha 1 (Virtual Audio Cable)" ou "audio=Microfone (Realtek)"
+# Deixe vazio para gravar só vídeo (gdigrab não captura áudio do sistema).
+AUDIO_DEVICE_DSHOW = os.getenv("AUDIO_DEVICE_DSHOW", "").strip() or None
+
+# Preset AV1 (0–13): maior = mais lento e menor arquivo. 10 = bom para aulas (pouco movimento).
+AV1_PRESET = int(os.getenv("AV1_PRESET", "10"))
+AV1_PRESET = max(0, min(13, AV1_PRESET))

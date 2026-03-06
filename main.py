@@ -21,11 +21,7 @@ def main():
         sys.exit(1)
 
     def encerrar(sig=None, frame=None):
-        proc.terminate()
-        try:
-            proc.wait(timeout=5)
-        except Exception:
-            proc.kill()
+        gravador.parar_gravacao(proc)
         if out_path and out_path.exists():
             if config.GDRIVE_PASTA_LOCAL:
                 gravador.copiar_para_gdrive(out_path)
