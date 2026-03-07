@@ -3,13 +3,14 @@ Grava a janela do Microsoft Teams usando FFmpeg (gdigrab no Windows).
 Suporta AV1, HEVC e H.264 para arquivos pequenos com boa qualidade.
 Arquitetura: RecorderInterface -> TeamsRecorder; FileManager para hash e cópia.
 """
+import re
 import shutil
 import subprocess
 import sys
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pygetwindow as gw
 from loguru import logger
@@ -43,8 +44,26 @@ def _find_teams_window():
     return None
 
 
-def _build_ffmpeg_cmd(output_path: Path, use_hwnd: bool, hwnd: int, window_title: str):
-    """Monta o comando FFmpeg para captura gdigrab + codec escolhido; opcionalmente áudio dshow."""
+def _detect_teams_mode(window_title: str) -> Literal["screen_share", "video"]:
+    """
+    Detecta se o Teams está em compartilhamento de tela ou vídeo pelo título da janela.
+    Modo compartilhamento → bitrate tipicamente menor → CRF mais alto para arquivo menor.
+    """
+    if not window_title:
+        return "video"
+    keywords = getattr(config, "TEAMS_SCREEN_SHARE_KEYWORDS", "Compartilhando|Screen|Partage|Sharing")
+    pattern = re.compile("|".join(re.escape(k.strip()) for k in keywords.split("|") if k.strip()), re.I)
+    return "screen_share" if pattern.search(window_title) else "video"
+
+
+def _build_ffmpeg_cmd(
+    output_path: Path,
+    use_hwnd: bool,
+    hwnd: int,
+    window_title: str,
+    mode: Literal["screen_share", "video"] = "video",
+):
+    """Monta o comando FFmpeg para captura gdigrab + codec; opcionalmente áudio dshow; CRF dinâmico por modo."""
     base = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "warning"]
     base.extend(["-f", "gdigrab", "-framerate", str(config.FPS)])
     if use_hwnd and hwnd is not None:
@@ -56,7 +75,11 @@ def _build_ffmpeg_cmd(output_path: Path, use_hwnd: bool, hwnd: int, window_title
     if has_audio:
         base.extend(["-f", "dshow", "-i", config.AUDIO_DEVICE_DSHOW])
 
+    # Bitrate dinâmico: compartilhamento de tela = mais estático → CRF mais alto (arquivo menor).
     crf = config.CRF
+    if mode == "screen_share":
+        offset = getattr(config, "CRF_OFFSET_SCREEN_SHARE", 3)
+        crf = min(32, crf + offset)
     ext = "mkv"
 
     if config.CODEC == "av1":
@@ -131,9 +154,12 @@ class TeamsRecorder(RecorderInterface):
         nome = f"aula_{data_hora}{sufixo}" if sufixo else f"aula_{data_hora}"
         output_path = Path(config.GRAVACOES_DIR) / nome
 
-        cmd, out_path = _build_ffmpeg_cmd(output_path, use_hwnd, hwnd, win.title)
+        mode = _detect_teams_mode(win.title)
+        cmd, out_path = _build_ffmpeg_cmd(output_path, use_hwnd, hwnd, win.title, mode=mode)
         out_path = Path(out_path)
         logger.info(f"Janela: {win.title}")
+        if mode == "screen_share":
+            logger.info("Modo detectado: compartilhamento de tela (CRF otimizado para arquivo menor).")
         logger.info(f"Gravando em: {out_path}")
         logger.info("Para parar: feche este terminal ou pressione Ctrl+C.")
 

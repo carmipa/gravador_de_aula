@@ -1,8 +1,12 @@
 # Gravador de Aula - Teams FIAP
 
 [![Tests & Lint](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml/badge.svg)](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml)
+[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)](https://www.microsoft.com/windows)
 
 Bot para gravar a janela do **Microsoft Teams (app desktop)** durante aulas online, com arquivos pequenos e boa qualidade (AV1/HEVC/H.264). Uso pessoal: não perder nada da aula.
+
+> **📚 Documentação completa (arquitetura, configuração, fluxos, GRC, desenvolvimento):** [doc/](doc/README.md)
 
 - **Requisitos:** Windows, FFmpeg no PATH, app Teams aberto (janela da reunião visível).
 - **Uso:** rode o script antes ou durante a aula; para parar: **Ctrl+C**.
@@ -87,6 +91,9 @@ Ajuste `CRF` no `.env`: **18–22** = mais qualidade (arquivo maior), **28–30*
 - **Encerramento:** ao dar **Ctrl+C**, o script envia `q` ao FFmpeg para fechar o container graciosamente (evita arquivo corrompido por cabeçalho não finalizado).
 - **Áudio:** a captura é da **janela** (gdigrab). Para áudio interno (ex.: saída do Teams), configure no `.env` o dispositivo DShow: `AUDIO_DEVICE_DSHOW=audio=...`. Liste dispositivos com: `ffmpeg -list_devices true -f dshow -i dummy`.
 - **AV1:** preset padrão 10 (mais lento, arquivos menores para aulas). Ajuste com `AV1_PRESET` (0–13) no `.env`.
+- **Health check:** o bot verifica se o arquivo de saída está crescendo; se parar por 30 s (configurável), dispara alerta crítico (codec pode ter travado).
+- **Upload em background:** cópia para Drive e upload via API rodam em thread separada; o terminal libera logo após encerrar a gravação.
+- **Bitrate dinâmico:** se o título da janela indicar compartilhamento de tela (ex.: "Compartilhando"), o CRF é aumentado para gerar arquivo menor. Configure `TEAMS_SCREEN_SHARE_KEYWORDS` e `CRF_OFFSET_SCREEN_SHARE` no `.env`.
 - **Segurança (GRC):** o bot avisa se a janela do Teams não está em foco (evitar gravar notificações de outras janelas). Upload via API não imprime credenciais em erros; após upload é feita verificação de integridade (SHA-256/MD5 local vs Drive).
 - **Observabilidade:** logs no terminal via **Rich** (cores, ícones); auditoria em `logs/audit_YYYY-MM-DD.log` (rotação 100 MB, retenção 30 dias). Exceções não tratadas são capturadas e logadas com traceback (`@logger.catch`).
 - **Política de uso:** use apenas para estudo pessoal e respeite os termos da FIAP e do Microsoft Teams.

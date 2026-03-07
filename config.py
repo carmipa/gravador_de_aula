@@ -42,3 +42,16 @@ AUDIO_DEVICE_DSHOW = os.getenv("AUDIO_DEVICE_DSHOW", "").strip() or None
 # Preset AV1 (0–13): maior = mais lento e menor arquivo. 10 = bom para aulas (pouco movimento).
 AV1_PRESET = int(os.getenv("AV1_PRESET", "10"))
 AV1_PRESET = max(0, min(13, AV1_PRESET))
+
+# Health check de gravação: intervalo (s) e tempo sem crescimento para alerta crítico (codec travado).
+HEALTH_CHECK_INTERVAL_SEC = int(os.getenv("HEALTH_CHECK_INTERVAL_SEC", "10"))
+HEALTH_CHECK_INTERVAL_SEC = max(5, min(60, HEALTH_CHECK_INTERVAL_SEC))
+HEALTH_CHECK_STALL_SECONDS = int(os.getenv("HEALTH_CHECK_STALL_SECONDS", "30"))
+HEALTH_CHECK_STALL_SECONDS = max(15, min(120, HEALTH_CHECK_STALL_SECONDS))
+
+# Modo Teams: palavras no título para detectar "Compartilhamento de Tela" (bitrate menor → CRF mais alto).
+# Ex.: "Compartilhando", "Screen", "Partage", "Sharing". Separadas por |.
+TEAMS_SCREEN_SHARE_KEYWORDS = os.getenv("TEAMS_SCREEN_SHARE_KEYWORDS", "Compartilhando|Screen|Partage|Sharing").strip()
+# Ajuste de CRF no modo compartilhamento: +N = arquivo menor (conteúdo mais estático).
+CRF_OFFSET_SCREEN_SHARE = int(os.getenv("CRF_OFFSET_SCREEN_SHARE", "3"))
+CRF_OFFSET_SCREEN_SHARE = max(0, min(10, CRF_OFFSET_SCREEN_SHARE))
