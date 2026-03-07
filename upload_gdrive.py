@@ -77,7 +77,12 @@ def upload_para_drive_api(local_path: Path, nome_remoto: str | None = None) -> b
         sha256_drive = meta.get("sha256Checksum")
         md5_drive = meta.get("md5Checksum")
     except Exception as e:
-        print(f"Erro no upload: {e}", file=sys.stderr)
+        # Não expor detalhes que possam conter token (ex.: HttpError 403 com body)
+        msg = str(e).lower()
+        if "token" in msg or "credentials" in msg or "access_token" in msg or len(str(e)) > 200:
+            print("Erro no upload. Verifique permissões e rede.", file=sys.stderr)
+        else:
+            print(f"Erro no upload: {e}", file=sys.stderr)
         return False
 
     if sha256_drive and sha256_local.lower() != sha256_drive.lower():

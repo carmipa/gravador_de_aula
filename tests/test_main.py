@@ -2,7 +2,6 @@
 Testes do main.
 Cobre: main() com mocks (recorder, parar_gravacao, config), handler SIGTERM, fluxo KeyboardInterrupt.
 """
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 

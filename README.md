@@ -1,5 +1,7 @@
 # Gravador de Aula - Teams FIAP
 
+[![Tests & Lint](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml/badge.svg)](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml)
+
 Bot para gravar a janela do **Microsoft Teams (app desktop)** durante aulas online, com arquivos pequenos e boa qualidade (AV1/HEVC/H.264). Uso pessoal: não perder nada da aula.
 
 - **Requisitos:** Windows, FFmpeg no PATH, app Teams aberto (janela da reunião visível).
@@ -102,3 +104,5 @@ pytest
 ```
 
 Para relatório de cobertura: `pytest --cov=. --cov-report=term-missing`
+
+**CI/CD:** a cada push/PR o GitHub Actions roda os testes (Python 3.10–3.12), Ruff (lint) e exige cobertura mínima de 85%. Veja [.github/workflows/tests.yml](.github/workflows/tests.yml).

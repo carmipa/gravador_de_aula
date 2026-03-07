@@ -3,9 +3,6 @@ Testes do logger_config.
 Verifica: setup_logging não quebra, get_console retorna Console, diretório logs criado.
 """
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 
 def test_setup_logging_nao_levanta():

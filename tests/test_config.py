@@ -2,7 +2,6 @@
 Testes do módulo config.
 Verifica tipos, intervalos e valores default/aceitos (sem alterar .env em tempo de execução).
 """
-import pytest
 
 
 def test_config_codec_valido():

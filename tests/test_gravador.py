@@ -3,13 +3,9 @@ Testes do módulo gravador.
 Cobre: _build_ffmpeg_cmd (todos os codecs), _janela_em_foco, _find_teams_window,
 parar_gravacao, TeamsRecorder, gravar, copiar_para_gdrive.
 """
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-import gravador
 from gravador import (
     TeamsRecorder,
     _build_ffmpeg_cmd,

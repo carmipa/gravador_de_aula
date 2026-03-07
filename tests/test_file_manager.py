@@ -4,7 +4,6 @@ Cobre: compute_sha256, compute_md5, verify_sha256, hash_sha256 (com e sem progre
 copy_to_gdrive_local, verify_integrity_sha256.
 """
 import hashlib
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest

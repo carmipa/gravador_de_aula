@@ -5,7 +5,6 @@ Audit trail: barra de progresso Rich no hash para arquivos grandes (ex.: 1h de a
 """
 import hashlib
 import shutil
-import sys
 from pathlib import Path
 
 from loguru import logger

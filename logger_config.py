@@ -2,7 +2,6 @@
 Configuração centralizada de logs: UX no terminal (Rich) e auditoria em arquivo (GRC).
 Segurança: logs de arquivo não incluem credenciais; tracebacks completos para depuração.
 """
-import sys
 from pathlib import Path
 
 from loguru import logger
