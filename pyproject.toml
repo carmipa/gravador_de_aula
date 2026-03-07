@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fiap-class-recorder"
+version = "2.0.0"
+description = "Gravador pessoal de aulas no Microsoft Teams com FFmpeg, foco em qualidade, automação e integridade."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Paulo André Carminati" }
+]
+keywords = [
+  "teams",
+  "ffmpeg",
+  "screen-recording",
+  "windows",
+  "automation",
+  "python",
+  "fiap",
+  "class-recorder"
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Multimedia :: Video :: Capture",
+  "Topic :: Utilities"
+]
+
+dependencies = [
+  "python-dotenv",
+  "pygetwindow",
+  "loguru",
+  "rich"
+]
+
+[project.optional-dependencies]
+gdrive = [
+  "google-api-python-client",
+  "google-auth-oauthlib",
+  "google-auth-httplib2"
+]
+dev = [
+  "pytest",
+  "pytest-cov",
+  "ruff"
+]
+
+[project.scripts]
+fiap-recorder = "main:cli"
+
+[tool.setuptools]
+py-modules = ["config", "file_manager", "gravador", "logger_config", "main", "upload_gdrive"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

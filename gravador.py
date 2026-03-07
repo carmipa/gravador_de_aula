@@ -4,6 +4,7 @@ Suporta AV1, HEVC e H.264 para arquivos pequenos com boa qualidade.
 """
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,21 @@ from loguru import logger
 
 import config
 from file_manager import FileManager
+
+
+def _sanitize_filename(name: str) -> str:
+    """Remove caracteres inválidos para nome de arquivo."""
+    clean = re.sub(r'[<>:"/\\|?*]+', "_", name)
+    clean = re.sub(r"\s+", " ", clean).strip()
+    return clean[:120] if len(clean) > 120 else clean
+
+
+def _build_output_base(window_title: str) -> Path:
+    """Gera o path base do arquivo de saída: timestamp__titulo_sanitizado."""
+    ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    safe_title = _sanitize_filename(window_title or "Teams")
+    filename = f"{ts}__{safe_title}"
+    return Path(config.GRAVACOES_DIR) / filename
 
 
 def _janela_em_foco(win) -> bool:

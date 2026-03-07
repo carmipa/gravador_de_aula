@@ -36,7 +36,7 @@ def test_main_com_janela_mas_start_falha_sai_1():
 
 
 def test_main_keyboard_interrupt_chama_parar_gravacao():
-    """Em KeyboardInterrupt, main chama parar_gravacao(processo)."""
+    """Em KeyboardInterrupt, run chama parar_gravacao(processo)."""
     fake_proc = MagicMock()
     fake_path = Path("/tmp/out.mkv")
     with patch("main.setup_logging"):
@@ -51,8 +51,8 @@ def test_main_keyboard_interrupt_chama_parar_gravacao():
                         cfg.GDRIVE_PASTA_LOCAL = None
                         cfg.GDRIVE_PASTA_ID = None
                     try:
-                        from main import main
-                        main()
+                        from main import run
+                        run(skip_upload=True)
                     except KeyboardInterrupt:
                         pass
                 parar.assert_called_with(fake_proc)
@@ -63,7 +63,7 @@ def test_main_finally_faz_upload_se_configurado(tmp_path):
     fake_proc = MagicMock()
     fake_proc.wait.return_value = None
     fake_path = tmp_path / "out.mkv"
-    fake_path.touch()  # Path(fake_path).exists() == True
+    fake_path.touch()
     import main as main_mod
     with patch.object(main_mod, "TeamsRecorder") as Rec:
         rec = MagicMock()
@@ -75,7 +75,8 @@ def test_main_finally_faz_upload_se_configurado(tmp_path):
                 with patch.object(main_mod, "upload_para_drive_api") as upload:
                     with patch.object(main_mod.config, "GDRIVE_PASTA_LOCAL", None):
                         with patch.object(main_mod.config, "GDRIVE_PASTA_ID", "folder_id"):
-                            main_mod.main()
+                            with pytest.raises(SystemExit):
+                                main_mod.main()
                     upload.assert_called_once_with(fake_path)
 
 
@@ -96,7 +97,8 @@ def test_main_finally_copia_para_gdrive_local_se_configurado(tmp_path):
                 with patch.object(main_mod, "upload_para_drive_api"):
                     with patch.object(main_mod.config, "GDRIVE_PASTA_LOCAL", "/path/to/drive"):
                         with patch.object(main_mod.config, "GDRIVE_PASTA_ID", None):
-                            main_mod.main()
+                            with pytest.raises(SystemExit):
+                                main_mod.main()
                     copy.assert_called_once_with(fake_path)
 
 

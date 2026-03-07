@@ -1,9 +1,61 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Ruff / caches
+.ruff_cache/
+.mypy_cache/
+
+# IDEs / editors
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local env and secrets
 .env
+.env.*
+!.env.example
+credentials.json
+token.json
+
+# Logs
+logs/
+*.log
+
+# Recorded videos / artifacts
+gravacoes/
 *.mp4
 *.mkv
+*.mov
+*.avi
 *.webm
-gravacoes/
-__pycache__/
-*.pyc
-.venv/
-logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Local Google Drive sync paths metadata, if any
+*.lnk
+desktop.ini

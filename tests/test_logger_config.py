@@ -13,8 +13,9 @@ def test_setup_logging_nao_levanta():
 
 def test_get_console_retorna_console():
     """get_console retorna instância de Console do Rich."""
-    from logger_config import get_console
     from rich.console import Console
+
+    from logger_config import get_console
     c = get_console()
     assert isinstance(c, Console)
 
@@ -30,6 +31,7 @@ def test_setup_logging_cria_diretorio_logs():
 
 def test_console_exportado():
     """console está disponível no módulo."""
-    from logger_config import console
     from rich.console import Console
+
+    from logger_config import console
     assert isinstance(console, Console)

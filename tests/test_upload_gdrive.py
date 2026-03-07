@@ -52,8 +52,9 @@ def _make_creds_and_path_mocks():
 
 def test_upload_mock_build_retorna_true(sample_video_file):
     """Com build() mockado e service retornando create/get, upload retorna True."""
-    import upload_gdrive as ud
     from pathlib import Path as RealPath
+
+    import upload_gdrive as ud
 
     creds_mock, path_mock = _make_creds_and_path_mocks()
     path_mock.resolve.return_value = path_mock
@@ -102,7 +103,11 @@ def test_upload_httperror_403_retorna_false_sem_expor_token(sample_video_file, c
         pytest.skip("googleapiclient não instalado")
 
     creds_mock, path_mock = _make_creds_and_path_mocks()
-    path_mock.parent.__truediv__ = lambda self, name: MagicMock(exists=lambda: True) if name == "token.json" else MagicMock(exists=lambda: False)
+    path_mock.parent.__truediv__ = (
+        lambda self, name: MagicMock(exists=lambda: True)
+        if name == "token.json"
+        else MagicMock(exists=lambda: False)
+    )
 
     service = MagicMock()
     # Simula resposta 403 com corpo que poderia vazar token
@@ -137,7 +142,11 @@ def test_upload_httperror_500_retorna_false(sample_video_file):
         pytest.skip("googleapiclient não instalado")
 
     creds_mock, path_mock = _make_creds_and_path_mocks()
-    path_mock.parent.__truediv__ = lambda self, name: MagicMock(exists=lambda: True) if name == "token.json" else MagicMock(exists=lambda: False)
+    path_mock.parent.__truediv__ = (
+        lambda self, name: MagicMock(exists=lambda: True)
+        if name == "token.json"
+        else MagicMock(exists=lambda: False)
+    )
 
     service = MagicMock()
     service.files.return_value.create.return_value.execute.side_effect = HttpError(
@@ -162,7 +171,11 @@ def test_upload_httperror_500_retorna_false(sample_video_file):
 def test_upload_integridade_sha256_falha_avisa(sample_video_file):
     """Quando SHA-256 do Drive difere do local, retorna False (integridade violada)."""
     creds_mock, path_mock = _make_creds_and_path_mocks()
-    path_mock.parent.__truediv__ = lambda self, name: MagicMock(exists=lambda: True) if name == "token.json" else MagicMock(exists=lambda: False)
+    path_mock.parent.__truediv__ = (
+        lambda self, name: MagicMock(exists=lambda: True)
+        if name == "token.json"
+        else MagicMock(exists=lambda: False)
+    )
 
     service = MagicMock()
     service.files.return_value.create.return_value.execute.return_value = {"id": "f1"}

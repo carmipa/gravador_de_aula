@@ -30,8 +30,9 @@ def test_config_av1_preset_no_intervalo():
 
 def test_config_gravacoes_dir_existe_e_string():
     """GRAVACOES_DIR deve ser Path ou str não vazio e o diretório deve existir ou ser criável."""
-    import config
     from pathlib import Path
+
+    import config
     p = Path(config.GRAVACOES_DIR)
     assert len(str(p)) > 0
     assert p.exists() or True  # pode ser criado no import

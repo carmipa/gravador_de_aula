@@ -2,18 +2,16 @@
   <img src="https://raw.githubusercontent.com/carmipa/gravador_de_aula/main/assets/icon.png" alt="Gravador de Aula Teams FIAP" width="200" />
 </p>
 
-# 🎥 FIAP Class Recorder | Cybersecurity & GRC Automation
+# FIAP Class Recorder
 
-<p align="center">
-  <a href="https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/carmipa/gravador_de_aula/tests.yml?branch=main&style=for-the-badge&logo=github" alt="Tests & Lint" /></a>
-  <img src="https://img.shields.io/badge/Coverage-85%25-brightgreen?style=for-the-badge&logo=pytest" alt="Coverage" />
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue?style=for-the-badge&logo=python" alt="Python" /></a>
-  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/Code%20Style-Ruff-000000?style=for-the-badge&logo=ruff" alt="Ruff" /></a>
-  <a href="https://www.microsoft.com/windows"><img src="https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows" alt="Platform Windows" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License MIT" /></a>
-</p>
+[![Tests & Lint](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml/badge.svg)](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml)
+[![Release](https://github.com/carmipa/gravador_de_aula/actions/workflows/release.yml/badge.svg)](https://github.com/carmipa/gravador_de_aula/actions/workflows/release.yml)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D6)
+![FFmpeg](https://img.shields.io/badge/FFmpeg-required-black)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-Bot para gravar a janela do **Microsoft Teams (app desktop)** durante aulas online, com arquivos pequenos e boa qualidade (AV1/HEVC/H.264). Uso pessoal: não perder nada da aula.
+Gravador pessoal de aulas no **Microsoft Teams** com **Python + FFmpeg**, foco em qualidade, automação e integridade.
 
 > **📚 Documentação completa (arquitetura, configuração, fluxos, GRC, desenvolvimento):** [doc/](doc/README.md)
 
@@ -23,20 +21,51 @@ Bot para gravar a janela do **Microsoft Teams (app desktop)** durante aulas onli
 
 ---
 
+## Preview
+
+### Banner
+![FIAP Class Recorder Banner](doc/banner.png)
+
+### Screenshot
+![FIAP Class Recorder Screenshot](doc/screenshot-terminal.png)
+
+*Exemplo de execução com detecção da janela do Teams, inicialização do FFmpeg e início da gravação.*
+
+---
+
 ## Instalação rápida
 
 1. **FFmpeg**  
    Baixe em [ffmpeg.org](https://ffmpeg.org/download.html) (Windows builds) e coloque a pasta `bin` no PATH. Para **AV1** (arquivos menores), use um build com **libsvtav1** (ex.: [BtbN](https://github.com/BtbN/FFmpeg-Builds/releases)).
 
-2. **Python e dependências**
+2. **Ambiente (Windows)**  
+   Use o script de setup na raiz do projeto:
+
+   **Runtime básico:**
+   ```powershell
+   .\scripts\setup.ps1
+   ```
+
+   **Com Google Drive:**
+   ```powershell
+   .\scripts\setup.ps1 -GDrive
+   ```
+
+   **Com desenvolvimento (testes, ruff):**
+   ```powershell
+   .\scripts\setup.ps1 -Dev
+   ```
+
+   O script cria o `.venv`, instala o pacote (`pip install -e .` ou com extras) e copia `.env.example` para `.env` se não existir.
+
+   **Alternativa manual:**
    ```bash
    cd gravador_de_aula
+   python -m venv .venv
    .venv\Scripts\activate
-   pip install -r requirements.txt
+   pip install -e .
    ```
-   Inclui **Rich** (interface no terminal) e **Loguru** (logs e auditoria).  
-   **Upload Google Drive via API:** `pip install -r requirements-gdrive.txt`  
-   **Desenvolvimento/testes:** `pip install -r requirements-dev.txt`
+   Com Drive: `pip install -e ".[gdrive]"` | Desenvolvimento: `pip install -e ".[dev]"`
 
 3. **Configuração (opcional)**  
    Copie `.env.example` para `.env` e ajuste:
@@ -49,11 +78,43 @@ Bot para gravar a janela do **Microsoft Teams (app desktop)** durante aulas onli
 
 ## Como usar
 
+### Modo tradicional
+```bash
+python main.py
+```
+
+### Via CLI instalada (pacote)
+```bash
+pip install -e .
+fiap-recorder
+```
+
+### Exemplos úteis
+
+Listar janelas abertas (ajustar título no .env):
+```bash
+fiap-recorder --list-windows
+```
+
+Forçar codec e FPS:
+```bash
+fiap-recorder --codec av1 --fps 30 --crf 30
+```
+
+Não fazer upload nem cópia pós-gravação:
+```bash
+fiap-recorder --no-upload
+```
+
+Usar outro trecho do título da janela:
+```bash
+fiap-recorder --title "Microsoft Teams"
+```
+
+### Fluxo
+
 1. Abra o **Microsoft Teams** e entre na reunião da aula (ou deixe a janela pronta para entrar).
-2. No terminal (com o venv ativado):
-   ```bash
-   python main.py
-   ```
+2. Rode `python main.py` ou `fiap-recorder`.
 3. O bot detecta a janela do Teams e inicia a gravação. Para **parar**: **Ctrl+C** no terminal.
 4. O arquivo fica em `gravacoes/` (ex.: `aula_2026-03-06_14-30.mkv`).
 
@@ -124,3 +185,41 @@ pytest
 Para relatório de cobertura: `pytest --cov=. --cov-report=term-missing`
 
 **CI/CD:** a cada push/PR o GitHub Actions roda os testes (Python 3.10–3.12), Ruff (lint) e exige cobertura mínima de 85%. Veja [.github/workflows/tests.yml](.github/workflows/tests.yml).
+
+---
+
+## Desenvolvimento
+
+Instalação editável (recomendado para contribuir):
+
+```bash
+pip install -e .[dev]
+```
+
+Executar testes:
+```bash
+pytest
+```
+
+Executar lint:
+```bash
+ruff check .
+```
+
+Entry point instalado: `fiap-recorder`
+
+*Reorganização futura:* o código pode ser movido para `src/fiap_class_recorder/`; ver [doc/ESTRUTURA_FUTURA.md](doc/ESTRUTURA_FUTURA.md) para o modelo.
+
+---
+
+## Releases
+
+As versões publicadas podem ser encontradas na aba [Releases](https://github.com/carmipa/gravador_de_aula/releases) do GitHub.
+
+Ao usar tags (ex.: `v2.0.0`), a release é criada automaticamente pelo workflow [release.yml](.github/workflows/release.yml).
+
+---
+
+## Licença
+
+Distribuído sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.

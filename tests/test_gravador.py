@@ -9,13 +9,15 @@ from unittest.mock import MagicMock, patch
 from gravador import (
     TeamsRecorder,
     _build_ffmpeg_cmd,
+    _build_output_base,
+    _contains_screen_share_keywords,
     _find_teams_window,
     _janela_em_foco,
+    _sanitize_filename,
     copiar_para_gdrive,
     gravar,
     parar_gravacao,
 )
-
 
 # --- _build_ffmpeg_cmd (com config mockado) ---
 
@@ -280,3 +282,34 @@ def test_copiar_para_gdrive_delega_file_manager(sample_video_file):
         result = copiar_para_gdrive(sample_video_file)
         fm.copy_to_gdrive_local.assert_called_once_with(sample_video_file)
         assert result is True
+
+
+# --- _sanitize_filename, _build_output_base, _contains_screen_share_keywords ---
+
+
+def test_sanitize_filename():
+    """_sanitize_filename remove caracteres inválidos do nome de arquivo."""
+    name = 'Aula: Teams / Python * Teste?'
+    clean = _sanitize_filename(name)
+    assert ":" not in clean
+    assert "/" not in clean
+    assert "*" not in clean
+    assert "?" not in clean
+
+
+def test_contains_screen_share_keywords(monkeypatch):
+    """_contains_screen_share_keywords detecta palavras-chave no título."""
+    monkeypatch.setattr(
+        "gravador.config.TEAMS_SCREEN_SHARE_KEYWORDS",
+        "Compartilhando|Sharing|Screen",
+    )
+    assert _contains_screen_share_keywords("Professor está Compartilhando a tela") is True
+    assert _contains_screen_share_keywords("Reunião normal do Teams") is False
+
+
+def test_build_output_base(monkeypatch, tmp_path):
+    """_build_output_base retorna path em GRAVACOES_DIR com timestamp e título."""
+    monkeypatch.setattr("gravador.config.GRAVACOES_DIR", tmp_path)
+    path = _build_output_base("Aula FIAP")
+    assert path.parent == tmp_path
+    assert "Aula FIAP" in path.name
