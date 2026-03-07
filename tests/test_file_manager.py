@@ -110,6 +110,14 @@ def test_file_manager_copy_to_gdrive_local_ok(sample_video_file, tmp_path):
     assert (dest_dir / sample_video_file.name).read_bytes() == sample_video_file.read_bytes()
 
 
+def test_file_manager_copiar_arquivo(sample_video_file, tmp_path):
+    """copiar_arquivo copia para o diretório e retorna Path do destino."""
+    dest_dir = tmp_path / "dest"
+    dest = FileManager.copiar_arquivo(sample_video_file, dest_dir)
+    assert dest == dest_dir / sample_video_file.name
+    assert dest.read_bytes() == sample_video_file.read_bytes()
+
+
 def test_file_manager_verify_integrity_sha256_ok(sample_video_file):
     """verify_integrity_sha256 retorna True quando hash confere."""
     h = FileManager.hash_sha256(sample_video_file, show_progress=False)

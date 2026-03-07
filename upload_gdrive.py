@@ -2,99 +2,120 @@
 Upload opcional para Google Drive via API.
 Para usar: configure as credenciais OAuth (ver README) e defina GDRIVE_PASTA_ID no .env.
 Credential scrubbing: em caso de erro nunca imprimimos token/creds nos logs.
-Integridade: após upload comparamos MD5 local com md5Checksum do Drive.
+Integridade: após upload comparamos SHA-256/MD5 local com o do Drive.
 """
-import sys
+from __future__ import annotations
+
 from pathlib import Path
 
+from loguru import logger
+
 import config
+from file_manager import FileManager
 
 
-def _safe_auth_message(e: Exception) -> str:
-    """Mensagem genérica para erros de auth; nunca expõe token/creds (credential scrubbing)."""
-    return "Erro de autenticação. Verifique credentials.json e token.json."
+def _safe_auth_message(_: Exception) -> str:
+    """Mensagem genérica para erros de auth; nunca expõe token/creds."""
+    return "Erro de autenticação. Verifique credentials.json, token.json e permissões da API."
 
 
-def upload_para_drive_api(local_path: Path, nome_remoto: str | None = None) -> bool:
+def upload_para_drive_api(local_path: str | Path, nome_remoto: str | None = None) -> bool:
     """
     Faz upload do arquivo para o Google Drive via API.
-    Requer: pip install google-api-python-client google-auth-oauthlib
-    e arquivo credentials.json + token.json (fluxo OAuth uma vez).
-    Após upload, verifica integridade comparando MD5 local com md5Checksum do Drive.
+    Após upload, verifica integridade via SHA-256/MD5 quando disponível.
     """
     try:
+        from google.auth.transport.requests import Request
         from google.oauth2.credentials import Credentials
         from google_auth_oauthlib.flow import InstalledAppFlow
-        from google.auth.transport.requests import Request
         from googleapiclient.discovery import build
         from googleapiclient.http import MediaFileUpload
     except ImportError:
-        print("Para upload via API instale: google-api-python-client google-auth-oauthlib", file=sys.stderr)
+        logger.error(
+            "Dependências do Google Drive ausentes. Instale: pip install -r requirements-gdrive.txt"
+        )
         return False
 
-    from file_manager import FileManager
+    local_file = Path(local_path)
 
-    SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+    if not local_file.exists():
+        logger.error("Arquivo não encontrado para upload: {}", local_file)
+        return False
+
+    if not config.GDRIVE_PASTA_ID:
+        logger.error("GDRIVE_PASTA_ID não definido no .env.")
+        return False
+
+    scopes = ["https://www.googleapis.com/auth/drive.file"]
+    base_dir = Path(__file__).resolve().parent
+    token_path = base_dir / "token.json"
+    creds_path = base_dir / "credentials.json"
     creds = None
-    token_path = Path(__file__).parent / "token.json"
-    creds_path = Path(__file__).parent / "credentials.json"
 
     try:
         if token_path.exists():
-            creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)
+            creds = Credentials.from_authorized_user_file(str(token_path), scopes)
+
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
                 if not creds_path.exists():
-                    print("Coloque credentials.json na pasta do projeto (Google Cloud Console).", file=sys.stderr)
+                    logger.error("credentials.json não encontrado na pasta do projeto.")
                     return False
-                flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), SCOPES)
+
+                flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), scopes)
                 creds = flow.run_local_server(port=0)
-            with open(token_path, "w") as f:
-                f.write(creds.to_json())
-    except Exception as e:
-        print(_safe_auth_message(e), file=sys.stderr)
+                token_path.write_text(creds.to_json(), encoding="utf-8")
+    except Exception as exc:
+        logger.error(_safe_auth_message(exc))
         return False
 
-    drive_id = config.GDRIVE_PASTA_ID
-    if not drive_id:
-        print("Defina GDRIVE_PASTA_ID no .env com o ID da pasta do Drive.", file=sys.stderr)
-        return False
-
-    sha256_local = FileManager.hash_sha256(local_path)
+    sha256_local = FileManager.hash_sha256(local_file)
+    md5_local = FileManager.hash_md5(local_file)
 
     try:
         service = build("drive", "v3", credentials=creds)
-        nome = nome_remoto or local_path.name
-        mime = "video/mp4" if local_path.suffix.lower() == ".mp4" else "video/x-matroska"
-        media = MediaFileUpload(str(local_path), mimetype=mime, resumable=True)
-        body = {"name": nome, "parents": [drive_id]}
-        created = service.files().create(body=body, media_body=media, fields="id").execute()
+        remote_name = nome_remoto or local_file.name
+        mime_type = "video/mp4" if local_file.suffix.lower() == ".mp4" else "video/x-matroska"
+
+        media = MediaFileUpload(str(local_file), mimetype=mime_type, resumable=True)
+        body = {
+            "name": remote_name,
+            "parents": [config.GDRIVE_PASTA_ID],
+        }
+
+        created = (
+            service.files()
+            .create(body=body, media_body=media, fields="id,name")
+            .execute()
+        )
+
         file_id = created.get("id")
-        # Verificação de integridade: comparar SHA-256 local com o do Drive (get após create)
-        meta = service.files().get(fileId=file_id, fields="sha256Checksum,md5Checksum").execute()
-        sha256_drive = meta.get("sha256Checksum")
-        md5_drive = meta.get("md5Checksum")
-    except Exception as e:
-        # Não expor detalhes que possam conter token (ex.: HttpError 403 com body)
-        msg = str(e).lower()
-        if "token" in msg or "credentials" in msg or "access_token" in msg or len(str(e)) > 200:
-            print("Erro no upload. Verifique permissões e rede.", file=sys.stderr)
+        metadata = (
+            service.files()
+            .get(fileId=file_id, fields="id,name,sha256Checksum,md5Checksum")
+            .execute()
+        )
+
+        sha256_drive = metadata.get("sha256Checksum")
+        md5_drive = metadata.get("md5Checksum")
+
+    except Exception as exc:
+        msg = str(exc).lower()
+        if any(word in msg for word in ("token", "credential", "access_token", "unauthorized")):
+            logger.error("Erro de autenticação/permissão no Google Drive.")
         else:
-            print(f"Erro no upload: {e}", file=sys.stderr)
+            logger.error("Erro no upload para o Google Drive: {}", exc)
         return False
 
-    if sha256_drive and sha256_local.lower() != sha256_drive.lower():
-        print("Aviso: verificação de integridade falhou (SHA-256 local != Drive). Arquivo pode estar corrompido.", file=sys.stderr)
-    elif sha256_drive:
-        print("Integridade verificada (SHA-256 local = Drive).")
-    elif md5_drive:
-        md5_local = FileManager.hash_md5(local_path)
-        if md5_local.lower() != md5_drive.lower():
-            print("Aviso: verificação MD5 falhou (local != Drive).", file=sys.stderr)
-        else:
-            print("Integridade verificada (MD5 local = Drive).")
+    if sha256_drive and sha256_drive.lower() != sha256_local.lower():
+        logger.warning("SHA-256 divergente entre arquivo local e Google Drive.")
+        return False
 
-    print(f"Upload concluído: {nome}")
+    if md5_drive and md5_drive.lower() != md5_local.lower():
+        logger.warning("MD5 divergente entre arquivo local e Google Drive.")
+        return False
+
+    logger.success("Upload concluído com integridade validada: {}", local_file.name)
     return True

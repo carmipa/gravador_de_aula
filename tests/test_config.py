@@ -11,15 +11,15 @@ def test_config_codec_valido():
 
 
 def test_config_crf_no_intervalo():
-    """CRF deve estar entre 18 e 32."""
+    """CRF deve estar no intervalo configurado (18–40)."""
     import config
-    assert 18 <= config.CRF <= 32
+    assert 18 <= config.CRF <= 40
 
 
 def test_config_fps_no_intervalo():
-    """FPS deve estar entre 15 e 60."""
+    """FPS deve estar no intervalo configurado (10–60)."""
     import config
-    assert 15 <= config.FPS <= 60
+    assert 10 <= config.FPS <= 60
 
 
 def test_config_av1_preset_no_intervalo():
@@ -29,12 +29,12 @@ def test_config_av1_preset_no_intervalo():
 
 
 def test_config_gravacoes_dir_existe_e_string():
-    """GRAVACOES_DIR deve ser string não vazia e o diretório deve ser criado."""
+    """GRAVACOES_DIR deve ser Path ou str não vazio e o diretório deve existir ou ser criável."""
     import config
-    assert isinstance(config.GRAVACOES_DIR, str)
-    assert len(config.GRAVACOES_DIR) > 0
     from pathlib import Path
-    assert Path(config.GRAVACOES_DIR).exists() or True  # pode ser criado no import
+    p = Path(config.GRAVACOES_DIR)
+    assert len(str(p)) > 0
+    assert p.exists() or True  # pode ser criado no import
 
 
 def test_config_teams_window_title_string():

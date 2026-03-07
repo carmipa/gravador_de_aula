@@ -34,7 +34,9 @@ Bot para gravar a janela do **Microsoft Teams (app desktop)** durante aulas onli
    .venv\Scripts\activate
    pip install -r requirements.txt
    ```
-   Inclui **Rich** (interface no terminal) e **Loguru** (logs e auditoria).
+   Inclui **Rich** (interface no terminal) e **Loguru** (logs e auditoria).  
+   **Upload Google Drive via API:** `pip install -r requirements-gdrive.txt`  
+   **Desenvolvimento/testes:** `pip install -r requirements-dev.txt`
 
 3. **Configuração (opcional)**  
    Copie `.env.example` para `.env` e ajuste:
@@ -115,7 +117,7 @@ O projeto tem suíte de testes com **pytest**. Para rodar:
 
 ```bash
 .venv\Scripts\activate
-pip install -r requirements.txt   # inclui pytest e pytest-cov
+pip install -r requirements-dev.txt   # inclui pytest, pytest-cov e ruff
 pytest
 ```
 

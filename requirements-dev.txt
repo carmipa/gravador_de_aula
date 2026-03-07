@@ -1,0 +1,6 @@
+# Desenvolvimento e CI: testes + lint
+-r requirements.txt
+-r requirements-gdrive.txt
+pytest>=7.0.0
+pytest-cov>=4.0.0
+ruff>=0.1.0

@@ -27,6 +27,9 @@ def test_build_ffmpeg_cmd_av1(mock_config, tmp_gravacoes_dir):
     mock_config.CRF = 30
     mock_config.AUDIO_DEVICE_DSHOW = None
     mock_config.AV1_PRESET = 10
+    mock_config.TEAMS_SCREEN_SHARE_KEYWORDS = "Compartilhando|Sharing"
+    mock_config.CRF_OFFSET_SCREEN_SHARE = 3
+    mock_config.FFMPEG_LOGLEVEL = "warning"
     out = tmp_gravacoes_dir / "aula"
     cmd, path = _build_ffmpeg_cmd(out, False, None, "Teams")
     assert "ffmpeg" in cmd
@@ -42,6 +45,7 @@ def test_build_ffmpeg_cmd_hevc_nvenc(mock_config, tmp_gravacoes_dir):
     mock_config.CODEC = "hevc_nvenc"
     mock_config.CRF = 28
     mock_config.AUDIO_DEVICE_DSHOW = None
+    mock_config.FFMPEG_LOGLEVEL = "warning"
     out = tmp_gravacoes_dir / "aula"
     cmd, path = _build_ffmpeg_cmd(out, False, None, "Teams")
     assert "hevc_nvenc" in cmd
@@ -54,6 +58,7 @@ def test_build_ffmpeg_cmd_hevc(mock_config, tmp_gravacoes_dir):
     mock_config.CODEC = "hevc"
     mock_config.CRF = 28
     mock_config.AUDIO_DEVICE_DSHOW = None
+    mock_config.FFMPEG_LOGLEVEL = "warning"
     out = tmp_gravacoes_dir / "aula"
     cmd, path = _build_ffmpeg_cmd(out, False, None, "Teams")
     assert "libx265" in cmd
@@ -66,6 +71,7 @@ def test_build_ffmpeg_cmd_h264(mock_config, tmp_gravacoes_dir):
     mock_config.CODEC = "h264"
     mock_config.CRF = 23
     mock_config.AUDIO_DEVICE_DSHOW = None
+    mock_config.FFMPEG_LOGLEVEL = "warning"
     out = tmp_gravacoes_dir / "aula"
     cmd, path = _build_ffmpeg_cmd(out, False, None, "Teams")
     assert "libx264" in cmd
@@ -79,6 +85,7 @@ def test_build_ffmpeg_cmd_com_hwnd(mock_config, tmp_gravacoes_dir):
     mock_config.CRF = 30
     mock_config.AUDIO_DEVICE_DSHOW = None
     mock_config.AV1_PRESET = 10
+    mock_config.FFMPEG_LOGLEVEL = "warning"
     out = tmp_gravacoes_dir / "aula"
     cmd, _ = _build_ffmpeg_cmd(out, True, 99999, "Teams")
     assert "hwnd=99999" in cmd
@@ -91,6 +98,7 @@ def test_build_ffmpeg_cmd_com_audio_dshow(mock_config, tmp_gravacoes_dir):
     mock_config.CRF = 30
     mock_config.AUDIO_DEVICE_DSHOW = "audio=Virtual Cable"
     mock_config.AV1_PRESET = 10
+    mock_config.FFMPEG_LOGLEVEL = "warning"
     out = tmp_gravacoes_dir / "aula"
     cmd, _ = _build_ffmpeg_cmd(out, False, None, "Teams")
     assert "dshow" in cmd
@@ -197,11 +205,12 @@ def test_parar_gravacao_timeout_faz_kill(mock_popen):
 
 
 def test_teams_recorder_find_window_delega():
-    """TeamsRecorder.find_window chama _find_teams_window."""
+    """TeamsRecorder.find_window chama _find_teams_window e retorna bool."""
     with patch("gravador._find_teams_window", return_value=MagicMock()) as m:
         r = TeamsRecorder()
-        r.find_window()
+        result = r.find_window()
         m.assert_called_once()
+        assert result is True
 
 
 def test_teams_recorder_start_sem_ffmpeg_retorna_none_none():
@@ -219,6 +228,7 @@ def test_teams_recorder_start_sem_janela_retorna_none_none():
     with patch("gravador.shutil.which", return_value="/usr/bin/ffmpeg"):
         with patch("gravador.gw.getAllWindows", return_value=[]):
             rec = TeamsRecorder()
+            rec.window = None  # find_window() will be called and return None
             proc, path = rec.start()
             assert proc is None
             assert path is None
@@ -236,6 +246,9 @@ def test_teams_recorder_start_retorna_proc_e_path(tmp_gravacoes_dir, mock_teams_
                 cfg.CRF = 30
                 cfg.AUDIO_DEVICE_DSHOW = None
                 cfg.AV1_PRESET = 10
+                cfg.TEAMS_SCREEN_SHARE_KEYWORDS = "Compartilhando|Sharing"
+                cfg.CRF_OFFSET_SCREEN_SHARE = 3
+                cfg.FFMPEG_LOGLEVEL = "warning"
             with patch("gravador.subprocess.Popen", return_value=mock_popen):
                 with patch("gravador._janela_em_foco", return_value=True):
                     rec = TeamsRecorder()
@@ -262,7 +275,7 @@ def test_gravar_delega_para_teams_recorder():
 
 def test_copiar_para_gdrive_delega_file_manager(sample_video_file):
     """copiar_para_gdrive chama FileManager.copy_to_gdrive_local."""
-    with patch("file_manager.FileManager") as fm:
+    with patch("gravador.FileManager") as fm:
         fm.copy_to_gdrive_local.return_value = True
         result = copiar_para_gdrive(sample_video_file)
         fm.copy_to_gdrive_local.assert_called_once_with(sample_video_file)

@@ -1,104 +1,84 @@
 """
-FileManager: integridade (SHA-256), cópia e verificação pós-upload.
+FileManager: integridade (SHA-256/MD5), cópia e verificação pós-upload.
 Uso em GRC: garantir que o arquivo não foi corrompido no disco ou no upload.
-Audit trail: barra de progresso Rich no hash para arquivos grandes (ex.: 1h de aula).
 """
+from __future__ import annotations
+
 import hashlib
 import shutil
 from pathlib import Path
 
 from loguru import logger
-from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
 import config
-from logger_config import get_console
 
 
 def compute_sha256(path: Path) -> str:
     """Calcula o hash SHA-256 do arquivo para verificação de integridade."""
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
+    return FileManager.hash_sha256(path, show_progress=False)
 
 
 def compute_md5(path: Path) -> str:
     """Calcula MD5 (Drive API retorna md5Checksum para verificação pós-upload)."""
-    h = hashlib.md5()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
+    return FileManager.hash_md5(path)
 
 
 def verify_sha256(path: Path, expected: str) -> bool:
     """Verifica se o hash SHA-256 do arquivo coincide com o esperado."""
     if not path.exists():
         return False
-    return compute_sha256(path) == expected.lower()
+    return FileManager.hash_sha256(path, show_progress=False) == expected.lower()
 
 
 class FileManager:
     """
     Cuida do hash (integridade), cópia para pasta local e integridade.
     Uso: hash antes de mover/upload; verificação após upload (Drive: md5).
-    Audit trail: hash_sha256 exibe barra de progresso para arquivos grandes.
     """
 
     @staticmethod
-    def hash_sha256(path: Path, show_progress: bool = True) -> str:
-        """Calcula SHA-256; se show_progress e arquivo > 1MB, exibe barra de progresso Rich."""
-        path = Path(path)
-        if not path.exists():
-            raise FileNotFoundError(f"Arquivo não encontrado: {path}")
-        size = path.stat().st_size
-        if not show_progress or size < 1024 * 1024:
-            digest = compute_sha256(path)
-            logger.debug(f"Integridade SHA-256: {digest[:16]}...")
-            return digest
-
-        sha256_hash = hashlib.sha256()
-        console = get_console()
-        chunk_size = 65536
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            console=console,
-        ) as progress:
-            task = progress.add_task(
-                description="[cyan]Gerando hash de integridade (SHA-256)...",
-                total=size,
-            )
-            with open(path, "rb") as f:
-                for byte_block in iter(lambda: f.read(chunk_size), b""):
-                    sha256_hash.update(byte_block)
-                    progress.advance(task, len(byte_block))
-        digest = sha256_hash.hexdigest()
-        logger.debug(f"Integridade verificada: {digest[:16]}...")
-        return digest
+    def hash_sha256(path: str | Path, chunk_size: int = 1024 * 1024, show_progress: bool = True) -> str:
+        """Calcula SHA-256 do arquivo. show_progress é ignorado (compatibilidade com testes)."""
+        file_path = Path(path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"Arquivo não encontrado: {file_path}")
+        digest = hashlib.sha256()
+        with file_path.open("rb") as f:
+            for chunk in iter(lambda: f.read(chunk_size), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
 
     @staticmethod
-    def hash_md5(path: Path) -> str:
+    def hash_md5(path: str | Path, chunk_size: int = 1024 * 1024) -> str:
         """Calcula MD5 (Drive API retorna md5Checksum para verificação pós-upload)."""
-        return compute_md5(path)
+        file_path = Path(path)
+        digest = hashlib.md5()
+        with file_path.open("rb") as f:
+            for chunk in iter(lambda: f.read(chunk_size), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    @staticmethod
+    def copiar_arquivo(origem: str | Path, destino_dir: str | Path) -> Path:
+        """Copia o arquivo para o diretório de destino. Cria o diretório se necessário."""
+        origem_path = Path(origem)
+        destino_dir_path = Path(destino_dir)
+        destino_dir_path.mkdir(parents=True, exist_ok=True)
+        destino = destino_dir_path / origem_path.name
+        shutil.copy2(origem_path, destino)
+        logger.info("Arquivo copiado para {}", destino)
+        return destino
 
     @staticmethod
     def copy_to_gdrive_local(local_path: Path) -> bool:
         """Copia o arquivo para a pasta local do Google Drive, se configurada."""
         if not config.GDRIVE_PASTA_LOCAL or not local_path.exists():
             return False
-        dest_dir = Path(config.GDRIVE_PASTA_LOCAL)
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        dest = dest_dir / local_path.name
         try:
-            shutil.copy2(local_path, dest)
-            logger.info(f"Cópia para Google Drive: {dest}")
+            FileManager.copiar_arquivo(local_path, config.GDRIVE_PASTA_LOCAL)
             return True
         except Exception as e:
-            logger.error(f"Erro ao copiar para GDrive: {e}")
+            logger.error("Erro ao copiar para GDrive: {}", e)
             return False
 
     @staticmethod

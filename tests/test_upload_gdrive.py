@@ -52,7 +52,26 @@ def _make_creds_and_path_mocks():
 
 def test_upload_mock_build_retorna_true(sample_video_file):
     """Com build() mockado e service retornando create/get, upload retorna True."""
+    import upload_gdrive as ud
+    from pathlib import Path as RealPath
+
     creds_mock, path_mock = _make_creds_and_path_mocks()
+    path_mock.resolve.return_value = path_mock
+    path_mock.parent = path_mock
+    path_mock.__truediv__ = lambda self, name: (
+        path_mock._token if name == "token.json" else path_mock._creds
+    )
+    token_mock = MagicMock()
+    token_mock.exists.return_value = True
+    creds_path_mock = MagicMock()
+    creds_path_mock.exists.return_value = True
+    path_mock._token = token_mock
+    path_mock._creds = creds_path_mock
+
+    def path_side_effect(*args):
+        if args and args[0] == ud.__file__:
+            return path_mock
+        return RealPath(*args)
 
     service = MagicMock()
     service.files.return_value.create.return_value.execute.return_value = {"id": "file_xyz"}
@@ -64,11 +83,11 @@ def test_upload_mock_build_retorna_true(sample_video_file):
     import google.oauth2.credentials as creds_mod
     with patch("upload_gdrive.config") as cfg:
         cfg.GDRIVE_PASTA_ID = "folder_id"
-        with patch("upload_gdrive.Path", return_value=path_mock):
+        with patch("upload_gdrive.Path", side_effect=path_side_effect):
             with patch.object(creds_mod, "Credentials", MagicMock()) as Creds:
                 Creds.from_authorized_user_file.return_value = creds_mock
                 with patch("googleapiclient.discovery.build", return_value=service):
-                    with patch("file_manager.FileManager") as fm:
+                    with patch("upload_gdrive.FileManager") as fm:
                         fm.hash_sha256.return_value = "a" * 64
                         fm.hash_md5.return_value = "b" * 32
                         result = upload_para_drive_api(sample_video_file)
@@ -99,7 +118,7 @@ def test_upload_httperror_403_retorna_false_sem_expor_token(sample_video_file, c
         with patch.object(creds_mod, "Credentials", MagicMock()) as Creds:
             Creds.from_authorized_user_file.return_value = creds_mock
         with patch("googleapiclient.discovery.build", return_value=service):
-            with patch("file_manager.FileManager") as fm:
+            with patch("upload_gdrive.FileManager") as fm:
                 fm.hash_sha256.return_value = "a" * 64
                 result = upload_para_drive_api(sample_video_file)
 
@@ -129,19 +148,19 @@ def test_upload_httperror_500_retorna_false(sample_video_file):
     import google.oauth2.credentials as creds_mod
     with patch("upload_gdrive.config") as cfg:
         cfg.GDRIVE_PASTA_ID = "folder_id"
-    with patch("upload_gdrive.Path", return_value=path_mock):
-        with patch.object(creds_mod, "Credentials", MagicMock()) as Creds:
-            Creds.from_authorized_user_file.return_value = creds_mock
-        with patch("googleapiclient.discovery.build", return_value=service):
-            with patch("file_manager.FileManager") as fm:
-                fm.hash_sha256.return_value = "a" * 64
-                result = upload_para_drive_api(sample_video_file)
+    with patch.object(creds_mod, "Credentials", MagicMock()) as Creds:
+        Creds.from_authorized_user_file.return_value = creds_mock
+    with patch("googleapiclient.discovery.build", return_value=service):
+        with patch("upload_gdrive.FileManager") as fm:
+            fm.hash_sha256.return_value = "a" * 64
+            fm.hash_md5.return_value = "b" * 32
+            result = upload_para_drive_api(sample_video_file)
 
     assert result is False
 
 
-def test_upload_integridade_sha256_falha_avisa(sample_video_file, capsys):
-    """Quando SHA-256 do Drive difere do local, retorna True mas imprime aviso (upload já foi feito)."""
+def test_upload_integridade_sha256_falha_avisa(sample_video_file):
+    """Quando SHA-256 do Drive difere do local, retorna False (integridade violada)."""
     creds_mock, path_mock = _make_creds_and_path_mocks()
     path_mock.parent.__truediv__ = lambda self, name: MagicMock(exists=lambda: True) if name == "token.json" else MagicMock(exists=lambda: False)
 
@@ -155,15 +174,12 @@ def test_upload_integridade_sha256_falha_avisa(sample_video_file, capsys):
     import google.oauth2.credentials as creds_mod
     with patch("upload_gdrive.config") as cfg:
         cfg.GDRIVE_PASTA_ID = "folder_id"
-        with patch("upload_gdrive.Path", return_value=path_mock):
-            with patch.object(creds_mod, "Credentials", MagicMock()) as Creds:
-                Creds.from_authorized_user_file.return_value = creds_mock
-                with patch("googleapiclient.discovery.build", return_value=service):
-                    with patch("file_manager.FileManager") as fm:
-                        fm.hash_sha256.return_value = "a" * 64
-                        result = upload_para_drive_api(sample_video_file)
+        with patch.object(creds_mod, "Credentials", MagicMock()) as Creds:
+            Creds.from_authorized_user_file.return_value = creds_mock
+            with patch("googleapiclient.discovery.build", return_value=service):
+                with patch("upload_gdrive.FileManager") as fm:
+                    fm.hash_sha256.return_value = "a" * 64
+                    fm.hash_md5.return_value = "b" * 32
+                    result = upload_para_drive_api(sample_video_file)
 
-    assert result is True
-    out = capsys.readouterr()
-    err = out.err
-    assert "integridade" in err.lower() or "corrompido" in err.lower()
+    assert result is False
