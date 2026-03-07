@@ -13,11 +13,11 @@
 
 Gravador pessoal de aulas no **Microsoft Teams** com **Python + FFmpeg**, foco em qualidade, automação e integridade.
 
-> **📚 Documentação completa (arquitetura, configuração, fluxos, GRC, desenvolvimento):** [doc/](doc/README.md)
+> **📚 Documentação completa:** [doc/](doc/README.md) (arquitetura, configuração, fluxos, GRC, desenvolvimento). **Guia passo a passo no Windows:** [doc/INSTALACAO_WINDOWS.md](doc/INSTALACAO_WINDOWS.md).
 
-- **Requisitos:** Windows, FFmpeg no PATH, app Teams aberto (janela da reunião visível).
+- **Requisitos:** Windows, **FFmpeg no PATH** (sem ele a gravação não inicia), app Teams aberto (janela da reunião visível).
 - **Uso:** rode o script antes ou durante a aula; para parar: **Ctrl+C**.
-- **Saída:** vídeo na pasta `gravacoes/` (ou em `GRAVACOES_DIR`). Opcional: cópia para pasta do Google Drive ou upload via API.
+- **Saída:** sem configuração de Drive/API → vídeos em `aula_video/` no projeto. Com `GDRIVE_PASTA_LOCAL` ou `GDRIVE_PASTA_ID` → usa `gravacoes/` (ou `GRAVACOES_DIR`). Opcional: cópia para pasta do Google Drive ou upload via API.
 
 ---
 
@@ -58,18 +58,18 @@ Gravador pessoal de aulas no **Microsoft Teams** com **Python + FFmpeg**, foco e
 
    O script cria o `.venv`, instala o pacote (`pip install -e .` ou com extras) e copia `.env.example` para `.env` se não existir.
 
-   **Alternativa manual:**
-   ```bash
-   cd gravador_de_aula
+   **Alternativa manual (PowerShell na raiz do projeto):**
+   ```powershell
    python -m venv .venv
-   .venv\Scripts\activate
+   .\.venv\Scripts\Activate.ps1
    pip install -e .
    ```
-   Com Drive: `pip install -e ".[gdrive]"` | Desenvolvimento: `pip install -e ".[dev]"`
+   No CMD: `.venv\Scripts\activate.bat` após criar o venv. Com Drive: `pip install -e ".[gdrive]"` | Desenvolvimento: `pip install -e ".[dev]"`
 
 3. **Configuração (opcional)**  
    Copie `.env.example` para `.env` e ajuste:
-   - `GRAVACOES_DIR` – pasta das gravações (vazio = `gravacoes/` no projeto).
+   - **Sem** `GDRIVE_PASTA_LOCAL` e **sem** `GDRIVE_PASTA_ID` → o sistema usa automaticamente a pasta `aula_video/` no projeto.
+   - **Com** Drive configurado → `GRAVACOES_DIR` define onde gravar (default: `gravacoes/`).
    - `CODEC` – `av1` (recomendado), `hevc_nvenc` (GPU NVIDIA), `hevc`, ou `h264`.
    - `CRF` – qualidade (28–30 para aulas).
    - `TEAMS_WINDOW_TITLE` – trecho do título da janela do Teams (default: `Teams`).
@@ -116,7 +116,7 @@ fiap-recorder --title "Microsoft Teams"
 1. Abra o **Microsoft Teams** e entre na reunião da aula (ou deixe a janela pronta para entrar).
 2. Rode `python main.py` ou `fiap-recorder`.
 3. O bot detecta a janela do Teams e inicia a gravação. Para **parar**: **Ctrl+C** no terminal.
-4. O arquivo fica em `gravacoes/` (ex.: `aula_2026-03-06_14-30.mkv`).
+4. O arquivo fica em `aula_video/` (se não houver config de upload) ou em `gravacoes/`/`GRAVACOES_DIR` (ex.: `aula_2026-03-06_14-30.mkv`).
 
 ---
 
@@ -169,6 +169,30 @@ Ajuste `CRF` no `.env`: **18–22** = mais qualidade (arquivo maior), **28–30*
 - **Segurança (GRC):** o bot avisa se a janela do Teams não está em foco (evitar gravar notificações de outras janelas). Upload via API não imprime credenciais em erros; após upload é feita verificação de integridade (SHA-256/MD5 local vs Drive).
 - **Observabilidade:** logs no terminal via **Rich** (cores, ícones); auditoria em `logs/audit_YYYY-MM-DD.log` (rotação 100 MB, retenção 30 dias). Exceções não tratadas são capturadas e logadas com traceback (`@logger.catch`).
 - **Política de uso:** use apenas para estudo pessoal e respeite os termos da FIAP e do Microsoft Teams.
+
+---
+
+## Troubleshooting
+
+### "FFmpeg não encontrado. Instale e adicione ao PATH."
+
+Sem o FFmpeg acessível no PATH, a gravação **não inicia**. O programa detecta isso antes de abrir a janela do Teams.
+
+1. **Verifique se o FFmpeg está instalado** — no PowerShell ou CMD:
+   ```powershell
+   ffmpeg -version
+   ```
+   Se o comando não for reconhecido, instale o FFmpeg ou adicione a pasta onde está `ffmpeg.exe` ao PATH.
+
+2. **Onde baixar:** [ffmpeg.org](https://ffmpeg.org/download.html) (Windows builds). Para AV1 (arquivos menores), use um build com **libsvtav1** (ex.: [BtbN](https://github.com/BtbN/FFmpeg-Builds/releases)).
+
+3. **Adicionar ao PATH (Windows):** nas variáveis de ambiente do sistema, inclua a pasta `bin` do FFmpeg (ex.: `C:\ffmpeg\bin`). Para testar só na sessão atual do PowerShell:
+   ```powershell
+   $env:Path += ";C:\caminho\para\ffmpeg\bin"
+   ffmpeg -version
+   ```
+
+Depois disso, rode `fiap-recorder` ou `python main.py` novamente.
 
 ---
 

@@ -157,10 +157,12 @@ def _list_windows() -> None:
     import pygetwindow as gw
 
     logger.info("Listando janelas abertas...")
+    enc = getattr(sys.stdout, "encoding", None) or "utf-8"
     for win in gw.getAllWindows():
         title = (getattr(win, "title", "") or "").strip()
         if title:
-            print(title)
+            safe = title.encode(enc, errors="replace").decode(enc)
+            print(safe)
 
 
 @logger.catch(reraise=False)
