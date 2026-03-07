@@ -1,12 +1,15 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/carmipa/gravador_de_aula/main/assets/icon.png" alt="Gravador de Aula Teams FIAP" width="96" />
+  <img src="https://raw.githubusercontent.com/carmipa/gravador_de_aula/main/assets/icon.png" alt="Gravador de Aula Teams FIAP" width="200" />
 </p>
 
 # Gravador de Aula - Teams FIAP
 
-[![Tests & Lint](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml/badge.svg)](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml)
-[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)](https://www.microsoft.com/windows)
+<p align="center">
+  <a href="https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/carmipa/gravador_de_aula/tests.yml?branch=main&label=Tests%20%26%20Lint&logo=github" alt="Tests & Lint" /></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?logo=python&logoColor=white" alt="Python" /></a>
+  <a href="https://www.microsoft.com/windows"><img src="https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows" alt="Platform Windows" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License MIT" /></a>
+</p>
 
 Bot para gravar a janela do **Microsoft Teams (app desktop)** durante aulas online, com arquivos pequenos e boa qualidade (AV1/HEVC/H.264). Uso pessoal: não perder nada da aula.
 

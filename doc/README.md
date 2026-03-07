@@ -1,7 +1,7 @@
 # 📚 Documentação — Gravador de Aula Teams FIAP
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/carmipa/gravador_de_aula/main/assets/icon.png" alt="Ícone do projeto — Gravador de Aula Teams FIAP" width="128" />
+  <img src="https://raw.githubusercontent.com/carmipa/gravador_de_aula/main/assets/icon.png" alt="Ícone do projeto — Gravador de Aula Teams FIAP" width="200" />
 </p>
 
 <p align="center">
