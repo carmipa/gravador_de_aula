@@ -175,6 +175,11 @@ def run(skip_upload: bool = False) -> int:
         signal.signal(signal.SIGTERM, _encerrar_por_sinal)
 
     logger.info("=== FIAP Class Recorder ===")
+    if not config.GDRIVE_PASTA_LOCAL and not config.GDRIVE_PASTA_ID:
+        logger.info(
+            "Nenhuma configuração de upload detectada. Usando pasta local: {}",
+            config.GRAVACOES_DIR,
+        )
     logger.info(
         "Configuração: codec={} | crf={} | fps={} | pasta={}",
         config.CODEC,

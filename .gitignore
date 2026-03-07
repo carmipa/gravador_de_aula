@@ -46,6 +46,7 @@ logs/
 
 # Recorded videos / artifacts
 gravacoes/
+aula_video/
 *.mp4
 *.mkv
 *.mov

@@ -39,11 +39,18 @@ def _get_env_int(
 
 BASE_DIR = Path(__file__).resolve().parent
 
-GRAVACOES_DIR = Path(_get_env_str("GRAVACOES_DIR", str(BASE_DIR / "gravacoes")))
-GRAVACOES_DIR.mkdir(parents=True, exist_ok=True)
-
 GDRIVE_PASTA_LOCAL = _get_env_str("GDRIVE_PASTA_LOCAL") or None
 GDRIVE_PASTA_ID = _get_env_str("GDRIVE_PASTA_ID") or None
+
+# Se não houver pasta local nem pasta por API, grava em aula_video
+DEFAULT_LOCAL_VIDEO_DIR = BASE_DIR / "aula_video"
+
+if not GDRIVE_PASTA_LOCAL and not GDRIVE_PASTA_ID:
+    GRAVACOES_DIR = DEFAULT_LOCAL_VIDEO_DIR
+else:
+    GRAVACOES_DIR = Path(_get_env_str("GRAVACOES_DIR", str(BASE_DIR / "gravacoes")))
+
+GRAVACOES_DIR.mkdir(parents=True, exist_ok=True)
 
 CODEC = _get_env_str("CODEC", "av1").lower()
 VALID_CODECS = {"av1", "hevc_nvenc", "hevc", "h264"}
