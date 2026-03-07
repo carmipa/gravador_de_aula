@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/carmipa/gravador_de_aula/main/assets/icon.png" alt="Gravador de Aula Teams FIAP" width="96" />
+</p>
+
 # Gravador de Aula - Teams FIAP
 
 [![Tests & Lint](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml/badge.svg)](https://github.com/carmipa/gravador_de_aula/actions/workflows/tests.yml)
