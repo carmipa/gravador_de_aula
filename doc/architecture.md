@@ -28,7 +28,41 @@ Este documento descreve a arquitetura do **Gravador de Aula — Teams FIAP** em 
 
 ---
 
-## 2. Diagrama de componentes (Mermaid)
+## 2. Diagrama de contexto (Host → Processo → GRC → Nuvem)
+
+Visão voltada para **GitHub** e **GRC**: separação em Host Windows, processo Python, controles de segurança e nuvem. O GitHub renderiza o Mermaid abaixo nativamente.
+
+```mermaid
+graph TD
+    subgraph Host_Windows["🖥️ Host Windows"]
+        Teams["Microsoft Teams App"]
+        Audio["Áudio DShow (opcional)"]
+    end
+
+    subgraph Processo_Python["🐍 Processo Python"]
+        Main["main.py"] --> Recorder["TeamsRecorder"]
+        Recorder --> FFmpeg["FFmpeg Engine"]
+        FFmpeg --> Codec["AV1 / HEVC / H.264"]
+    end
+
+    subgraph Security_GRC["🔒 Security & GRC"]
+        FileMgr["FileManager"] --> Hash["SHA-256 Integrity"]
+        FileMgr --> Logs["Loguru Audit Trail"]
+    end
+
+    subgraph Cloud["☁️ Nuvem"]
+        Upload["upload_gdrive.py"] --> GDrive["Google Drive API"]
+    end
+
+    FFmpeg -- "Escreve" --> LocalDisk[("Local .mkv/.mp4")]
+    LocalDisk --> FileMgr
+    FileMgr --> Upload
+    Teams --> Recorder
+```
+
+---
+
+## 3. Diagrama de componentes (Mermaid)
 
 O diagrama abaixo mostra os módulos e suas dependências. Renderize no GitHub ou em [Mermaid Live](https://mermaid.live/).
 
@@ -75,7 +109,7 @@ flowchart TB
 
 ---
 
-## 3. Diagrama de sequência — Gravação e encerramento
+## 4. Diagrama de sequência — Gravação e encerramento
 
 Fluxo desde o início da gravação até o encerramento (Ctrl+C) e upload em background.
 
@@ -119,7 +153,7 @@ sequenceDiagram
 
 ---
 
-## 4. Diagrama de classes (gravador)
+## 5. Diagrama de classes (gravador)
 
 Interface e implementação do gravador (padrão Strategy/Interface).
 
@@ -150,7 +184,7 @@ classDiagram
 
 ---
 
-## 5. Diagrama de deployment (contexto de execução)
+## 6. Diagrama de deployment (contexto de execução)
 
 Onde cada parte roda: processo Python, subprocesso FFmpeg, threads.
 
@@ -172,7 +206,7 @@ flowchart LR
 
 ---
 
-## 6. Mapa de arquivos do projeto
+## 7. Mapa de arquivos do projeto
 
 | Caminho | Responsabilidade |
 |---------|------------------|
@@ -187,7 +221,7 @@ flowchart LR
 
 ---
 
-## 7. Dependências externas
+## 8. Dependências externas
 
 | Dependência | Uso |
 |-------------|-----|
