@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../assets/Gemini_Generated_Image_v1insnv1insnv1in.png" alt="Ícone do projeto — Gravador de Aula Teams FIAP" width="120" />
+  <img src="../assets/icon.png" alt="Ícone do projeto — Gravador de Aula Teams FIAP" width="120" />
 </p>
 
 # 📚 Documentação — Gravador de Aula Teams FIAP
